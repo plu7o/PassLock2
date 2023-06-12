@@ -1,6 +1,3 @@
-from models.enrty import Entry
-from encryption.passlocker import Passlocker
-from storage.storage import StorageManager
 from ui.cli import Cli
 from ui.gui import Gui
 

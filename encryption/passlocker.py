@@ -49,7 +49,8 @@ class Passlocker:
         dkey_hash = ph.hash(dkey).encode()
 
         # encrypting decryption key with derived key
-        rkey: bytes = Fernet.generate_key()  # key used for en/decrypting data
+        rkey: bytes = Fernet.generate_key()
+        # key used for en/decrypting data
         ekey: bytes = Fernet(dkey).encrypt(rkey)
 
         # saving new keys to file

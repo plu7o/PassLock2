@@ -33,14 +33,14 @@ class Interface():
     def get_all_entries(self) -> list[Entry]:
         return self.storage.get_all()
 
-    def gen_password(self):
-        pass
+    def gen_password(self, length):
+        return PasswordGenerator.gen_password(length)
 
-    def gen_passphrase(self):
-        pass
+    def gen_passphrase(self, length, complexity):
+        return PassphraseGenerator.gen_passphrase(length, complexity)
 
-    def gen_token(self):
-        pass
+    def gen_token(self, length):
+        return TokenGenerator.gen_token(length)
 
-    def gen_secretkey(self):
-        pass
+    def gen_secretkey(self, length):
+        return SecretkeyGenerator.gen_secret_key(length)

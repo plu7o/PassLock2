@@ -1,4 +1,3 @@
-from tkinter import Label
 import customtkinter
 
 
@@ -43,6 +42,7 @@ class ManagerMenu(customtkinter.CTkFrame):
     def __init__(self, parent, controller, **kwargs):
         super().__init__(parent, **kwargs)
         self.controller = controller
+        self.parent = parent
 
         self.label = customtkinter.CTkLabel(
             master=self,
@@ -59,20 +59,35 @@ class ManagerMenu(customtkinter.CTkFrame):
 
         self.generator_button = customtkinter.CTkButton(
             master=self,
-            text="Generators"
+            text="Generators",
+            command=self.switch_view
         )
         self.generator_button.pack(pady=15, padx=25, side="top")
 
         self.logout_button = customtkinter.CTkButton(
             master=self,
-            text="Logout"
+            text="Logout",
+            command=self.logout
         )
         self.logout_button.pack(pady=15, padx=25, side="top")
 
     def logout(self):
-        self.destroy()
+        self.parent.destroy()
         from .login_view import Login
+        self.controller.frames[Login] = Login(
+            self.controller.container,
+            self.controller
+        )
         self.controller.show_frame(Login)
+
+    def switch_view(self):
+        self.parent.destroy()
+        from .generator_view import Generator
+        self.controller.frames[Generator] = Generator(
+            self.controller.container,
+            self.controller
+        )
+        self.controller.show_frame(Generator)
 
 
 class PasswordView(customtkinter.CTkFrame):
@@ -395,33 +410,33 @@ class UpdateDialog(customtkinter.CTkToplevel):
 
         self.service = customtkinter.CTkEntry(
             self.frame,
-            placeholder_text="Service",
+            placeholder_text=self.entry.service,
             width=self.width
         )
         self.service.pack(pady=(5, 10), fill="x")
         self.username = customtkinter.CTkEntry(
             self.frame,
-            placeholder_text="Username",
+            placeholder_text=self.entry.username,
             width=self.width
         )
         self.username.pack(pady=5, fill="x")
         self.url = customtkinter.CTkEntry(
             self.frame,
-            placeholder_text="url",
+            placeholder_text=self.entry.url,
             width=self.width
         )
         self.url.pack(pady=5, fill="x")
 
         self.email = customtkinter.CTkEntry(
             self.frame,
-            placeholder_text="Email",
+            placeholder_text=self.entry.email,
             width=self.width
         )
         self.email.pack(pady=5, fill="x")
 
         self.password = customtkinter.CTkEntry(
             self.frame,
-            placeholder_text="Password",
+            placeholder_text=self.entry.password,
             width=self.width
         )
         self.password.pack(pady=5, fill="x")

@@ -74,6 +74,13 @@ class GeneratorMenu(customtkinter.CTkFrame):
         )
         self.logout_button.pack(pady=15, padx=25, side="top")
 
+        self.exit_button = customtkinter.CTkButton(
+            master=self,
+            text="Exit",
+            command=self.controller.exit
+        )
+        self.exit_button.pack(pady=15, padx=25, side="bottom")
+
     def logout(self):
         self.parent.destroy()
         from .login_view import Login

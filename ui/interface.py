@@ -16,7 +16,6 @@ class Interface():
         pass
 
     def add_entry(self, service, username, url, email, password):
-        # add id attribute
         new_entry = Entry(service, username, url, email, password)
         self.storage.save_entry(new_entry)
 

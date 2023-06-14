@@ -1,13 +1,20 @@
 import csv
 import os
+import stat
 import difflib
+import platform
+from pathlib import Path
 from models.enrty import Entry
 
 
 class StorageManager():
     def __init__(self, passlocker) -> None:
         self.passlocker = passlocker
-        self.storage_file = "entries.csv"
+        if platform.system() == "Linux":
+            self.storage_file = Path.home() / ".passlock/entries.csv"
+        elif platform.system() == "Windows":
+            self.storage_file = Path.home() / r"Documents\passlock\entries.csv"
+
         if not os.path.exists(self.storage_file):
             self.new()
 
@@ -15,10 +22,10 @@ class StorageManager():
         with open(self.storage_file, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([
-                entry.service,
-                entry.username,
-                entry.url,
-                entry.email,
+                self.passlocker.encrypt(entry.service).decode(),
+                self.passlocker.encrypt(entry.username).decode(),
+                self.passlocker.encrypt(entry.url).decode(),
+                self.passlocker.encrypt(entry.email).decode(),
                 self.passlocker.encrypt(entry.password).decode()
             ])
 
@@ -32,10 +39,10 @@ class StorageManager():
         rows = self.get_all_rows()
         if 0 <= index < len(rows):
             rows[index] = [
-                entry.service,
-                entry.username,
-                entry.url,
-                entry.email,
+                self.passlocker.encrypt(entry.service).decode(),
+                self.passlocker.encrypt(entry.username).decode(),
+                self.passlocker.encrypt(entry.url).decode(),
+                self.passlocker.encrypt(entry.email).decode(),
                 self.passlocker.encrypt(entry.password).decode()
             ]
             self.write_all_rows(rows)
@@ -56,10 +63,11 @@ class StorageManager():
     def get_all(self) -> list[Entry]:
         rows = []
         for _id, row in enumerate(self.get_all_rows()):
+            decrypted = [self.passlocker.decrypt(
+                value.encode()) for value in row]
             rows.append(
                 Entry(
-                    *row[:-1],
-                    self.passlocker.decrypt(row[-1].encode()),
+                    *decrypted,
                     _id
                 )
             )
@@ -69,6 +77,7 @@ class StorageManager():
         # creates a new empty file
         with open(self.storage_file, 'a', newline=''):
             pass
+        os.chmod(self.storage_file, stat.S_IRUSR | stat.S_IWUSR)
 
     def search(self, query, threshold=0.5) -> list[Entry]:
         match_items = []
@@ -81,8 +90,6 @@ class StorageManager():
                 None, query, item.url).ratio()
             email = difflib.SequenceMatcher(
                 None, query, item.email).ratio()
-
-            print(service, username, url, email)
 
             hits = [True if hit >= threshold else False for hit in [
                 service, username, url, email]]

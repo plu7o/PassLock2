@@ -1,5 +1,4 @@
 import customtkinter
-from encryption.passlocker import PasslockException
 from .interface import Interface
 from .views.login_view import Login
 
@@ -34,3 +33,6 @@ class Gui(customtkinter.CTk):
         else:
             frame.grid(row=0, column=0, sticky="nsew")
         frame.tkraise()
+
+    def exit(self):
+        self.destroy()

@@ -71,6 +71,13 @@ class ManagerMenu(customtkinter.CTkFrame):
         )
         self.logout_button.pack(pady=15, padx=25, side="top")
 
+        self.exit_button = customtkinter.CTkButton(
+            master=self,
+            text="Exit",
+            command=self.controller.exit
+        )
+        self.exit_button.pack(pady=15, padx=25, side="bottom")
+
     def logout(self):
         self.parent.destroy()
         from .login_view import Login
@@ -172,6 +179,8 @@ class AddDialog(customtkinter.CTkToplevel):
         super().__init__(parent, **kwargs)
         self.entry_list = entry_lsit
         self.controller = controller
+        self.parent = parent
+        self.toplevel_window = None
         self.geometry("400x300")
         self.width = 120
 
@@ -237,8 +246,9 @@ class AddDialog(customtkinter.CTkToplevel):
         fields = [True if field == "" else False for field in [
             service, username, url, email, password]]
 
+        # check if any filed is empty
         if any(fields):
-            self.error("Field is empty")
+            self.error()
             return
 
         self.controller.interface.add_entry(
@@ -246,9 +256,14 @@ class AddDialog(customtkinter.CTkToplevel):
         self.destroy()
         self.update_results()
 
-    def error(self, msg):
-        self.destroy()
-        print(f"[-] Error: {msg}")
+    def error(self):
+        if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
+            # create window if its None or destroyed
+            self.toplevel_window = ErrorDialog(
+                self, self.controller
+            )
+        else:
+            self.toplevel_window.focus()
 
     def update_results(self):
         self.clear_results()
@@ -265,6 +280,36 @@ class AddDialog(customtkinter.CTkToplevel):
         for widget in self.entry_list.winfo_children():
             if isinstance(widget, EntryItem):
                 widget.destroy()
+
+
+class ErrorDialog(customtkinter.CTkToplevel):
+    def __init__(self, parent, controller, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.controller = controller
+        self.width = 130
+        self.geometry("400x300")
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.msg_frame = customtkinter.CTkFrame(self)
+        self.msg_frame.grid(ipadx=10, ipady=10, row=0, column=0, sticky="")
+
+        self.msg = customtkinter.CTkLabel(
+            master=self.msg_frame,
+            text="Du hast was vergessen du pimmel!",
+            width=self.width
+        )
+        self.msg.pack(padx=10, pady=10, fill="x")
+        self.confirm_button = customtkinter.CTkButton(
+            master=self.msg_frame,
+            text="Ok",
+            width=150,
+            command=self.confirm
+        )
+        self.confirm_button.pack(pady=5, padx=(10, 5), fill="x")
+
+    def confirm(self):
+        self.destroy()
 
 
 class EntryList(customtkinter.CTkScrollableFrame):
@@ -375,7 +420,6 @@ class EntryItem(customtkinter.CTkFrame):
     def copy_text(self, text):
         self.controller.clipboard_clear()
         self.controller.clipboard_append(text)
-        print("DEBUG: text copied to clip")
 
     def delete(self):
         if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
@@ -501,7 +545,7 @@ class ConfirmDialog(customtkinter.CTkToplevel):
 
         self.msg = customtkinter.CTkLabel(
             self.frame,
-            text="Are you sure to you want delete?",
+            text="Willst du das wicklich löschen Vadda?",
             width=self.widht
         )
         self.msg.pack(padx=10, pady=10, fill="x")
@@ -521,7 +565,6 @@ class ConfirmDialog(customtkinter.CTkToplevel):
         self.cancel_button.pack(pady=5, padx=(5, 10), fill="x", side="right")
 
     def confirm(self):
-        print(f"[+] DEBUG: deleting entry with id: {self.entry_id}")
         self.controller.interface.del_entry(self.entry_id)
         self.update_results()
 

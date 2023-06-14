@@ -1,6 +1,7 @@
 from ui.cli import Cli
 from ui.gui import Gui
 
+
 def main():
     # passlocker = Passlocker('hallo')
     gui = Gui()

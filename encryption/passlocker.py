@@ -1,7 +1,10 @@
 from argon2 import PasswordHasher
 import base64
 import os
+import stat
+import platform
 import argon2
+from pathlib import Path
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
@@ -15,13 +18,9 @@ class PasslockException(Exception):
 
 class Passlocker:
     def __init__(self, master_password: str) -> None:
-        print("loding file")
         try:
             salt, dkey_hash, ekey = self.load_key()
         except FileNotFoundError:
-            print("file not found")
-
-            # how should i handle this error??
             self.new(master_password)
             salt, dkey_hash, ekey = self.load_key()
 
@@ -32,8 +31,10 @@ class Passlocker:
         self.derived_key: bytes = dkey
         self.encryption_key: bytes = ekey
 
+    def check_os(self):
+        return platform.system()
+
     def verify(self, dkey_hash, dkey):
-        print("verifing")
         ph = PasswordHasher()
         try:
             return ph.verify(dkey_hash, dkey)
@@ -41,7 +42,6 @@ class Passlocker:
             return False
 
     def new(self, master_password: str):
-        print("generating new keys")
         # deriving key from password
         salt: bytes = os.urandom(16)
         dkey: bytes = self.derive_password(salt, master_password)
@@ -89,11 +89,31 @@ class Passlocker:
 
     def write_key(self, salt: bytes, dkey_hash: bytes, ekey: bytes):
         encode_ekey = base64.urlsafe_b64encode(salt + dkey_hash + ekey)
-        with open('mykey.key', 'wb') as key:
+        keyfile = None
+        if self.check_os() == "Linux":
+            if not (Path.home() / ".passlock").exists():
+                (Path.home() / ".passlock").mkdir(mode=0o700)
+                keyfile = str((Path.home() / ".passlock/passlock.key"))
+
+        elif self.check_os() == "Windows":
+            documents = Path.home() / "Documents"
+            hidden_folder = documents / "passlock"
+            if not hidden_folder.exists():
+                hidden_folder.mkdir()
+                os.system(f'attrib +h "{hidden_folder}"')
+                keyfile = str(hidden_folder / "passlock.key")
+
+        if keyfile is None:
+            raise PasslockException(
+                "Keyfile could not be written - OS not supported")
+
+        with open(keyfile, 'wb') as key:
             key.write(encode_ekey)
+        os.chmod(keyfile, stat.S_IRUSR | stat.S_IWUSR)
 
     def load_key(self) -> tuple[bytes, bytes, bytes]:
-        with open('mykey.key', 'rb') as key:
+        keyfile = str(Path.home() / ".passlock/passlock.key")
+        with open(keyfile, 'rb') as key:
             encode_ekey = key.read()
         decode_ekey = base64.urlsafe_b64decode(encode_ekey)
         return decode_ekey[:16], decode_ekey[16:113], decode_ekey[113:]

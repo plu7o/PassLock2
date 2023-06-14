@@ -34,6 +34,7 @@ class Login(customtkinter.CTkFrame):
             show="*",
             width=200)
         self.passwd_field.pack(pady=5, padx=25)
+
         self.passwd_field.bind("<Return>", self.on_enter_event)
 
         self.login_button = customtkinter.CTkButton(
@@ -54,7 +55,6 @@ class Login(customtkinter.CTkFrame):
             )
             self.controller.show_frame(Manager)
         except PasslockException as e:
-            print(f"debug: {e.msg}")
             self.error_massage = customtkinter.CTkLabel(
                 master=self,
                 text=e.msg,

@@ -1,4 +1,5 @@
 import customtkinter
+from PIL import Image
 
 
 class Generator(customtkinter.CTkFrame):
@@ -47,12 +48,9 @@ class GeneratorMenu(customtkinter.CTkFrame):
         self.controller = controller
         self.parent = parent
 
-        self.label = customtkinter.CTkLabel(
-            master=self,
-            text='Passlock',
-            font=("Hack Regular", 24)
-        )
-        self.label.pack(pady=12, padx=10)
+        self.logo = customtkinter.CTkImage(Image.open('passlock_logo.png'), size=(157, 31))
+        self.logo_label = customtkinter.CTkLabel(master=self, image=self.logo, text="")
+        self.logo_label.pack(pady=12, padx=10)
 
         self.manager_button = customtkinter.CTkButton(
             master=self,
@@ -74,12 +72,7 @@ class GeneratorMenu(customtkinter.CTkFrame):
         )
         self.logout_button.pack(pady=15, padx=25, side="top")
 
-        self.exit_button = customtkinter.CTkButton(
-            master=self,
-            text="Exit",
-            command=self.controller.exit
-        )
-        self.exit_button.pack(pady=15, padx=25, side="bottom")
+     
 
     def logout(self):
         self.parent.destroy()
@@ -189,7 +182,7 @@ class PasswordGeneratorFrame(customtkinter.CTkFrame):
         self.slider = customtkinter.CTkSlider(
             master=self,
             from_=8,
-            to=128,
+            to=64,
             command=self.set_password_length
         )
         self.slider.grid(row=1, column=0, pady=5, padx=(10, 0), sticky="w")
@@ -378,8 +371,8 @@ class SecrekeyGeneratorFrame(customtkinter.CTkFrame):
 
         self.slider = customtkinter.CTkSlider(
             master=self,
-            from_=8,
-            to=128,
+            from_=12,
+            to=512,
             command=self.set_password_length
         )
         self.slider.grid(row=1, column=0, pady=5, padx=(10, 0), sticky="w")

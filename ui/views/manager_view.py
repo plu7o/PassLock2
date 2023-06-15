@@ -1,11 +1,12 @@
 import customtkinter
+from PIL import Image
 
 
 class Manager(customtkinter.CTkFrame):
     def __init__(self, parent, controller, **kwargs):
         super().__init__(parent, **kwargs)
         self.controller = controller
-
+        
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(4, weight=1)
 
@@ -44,12 +45,9 @@ class ManagerMenu(customtkinter.CTkFrame):
         self.controller = controller
         self.parent = parent
 
-        self.label = customtkinter.CTkLabel(
-            master=self,
-            text='Passlock',
-            font=("Hack Regular", 24)
-        )
-        self.label.pack(pady=12, padx=10)
+        self.logo = customtkinter.CTkImage(Image.open('passlock_logo.png'), size=(157, 31))
+        self.logo_label = customtkinter.CTkLabel(master=self, image=self.logo, text="")
+        self.logo_label.pack(pady=12, padx=10)
 
         self.manager_button = customtkinter.CTkButton(
             master=self,
@@ -71,12 +69,7 @@ class ManagerMenu(customtkinter.CTkFrame):
         )
         self.logout_button.pack(pady=15, padx=25, side="top")
 
-        self.exit_button = customtkinter.CTkButton(
-            master=self,
-            text="Exit",
-            command=self.controller.exit
-        )
-        self.exit_button.pack(pady=15, padx=25, side="bottom")
+      
 
     def logout(self):
         self.parent.destroy()
@@ -110,7 +103,7 @@ class PasswordView(customtkinter.CTkFrame):
             self.controller,
             orientation="vertical",
             label_text="ID | SERVICE | USERNAME | URL | EMAIL | PASSWORD",
-            label_anchor="center"
+            label_anchor="center",
         )
         # Searchbar
         self.searchbar = Searchbar(
@@ -142,8 +135,8 @@ class PasswordView(customtkinter.CTkFrame):
         self.entry_list.pack(
             padx=10,
             pady=(5, 10),
-            ipadx=10,
-            ipady=10,
+            ipadx=5,
+            ipady=5,
             fill="both",
             expand=True
         )
@@ -170,6 +163,7 @@ class OptionsMenu(customtkinter.CTkFrame):
             # create window if its None or destroyed
             self.toplevel_window = AddDialog(
                 self.entry_list, self, self.controller)
+            self.toplevel_window.focus()
         else:
             self.toplevel_window.focus()
 
@@ -183,6 +177,8 @@ class AddDialog(customtkinter.CTkToplevel):
         self.toplevel_window = None
         self.geometry("400x300")
         self.width = 120
+        self.passwd = self.controller.interface.gen_password(12)
+        self.title("Add Entry")
 
         self.frame = customtkinter.CTkFrame(self)
         self.grid_columnconfigure(0, weight=1)
@@ -194,33 +190,41 @@ class AddDialog(customtkinter.CTkToplevel):
             placeholder_text="Service",
             width=self.width
         )
-        self.service.pack(pady=(5, 10), fill="x")
+        self.service.pack(pady=(10, 5), padx=5, fill="x", side="top")
         self.username = customtkinter.CTkEntry(
             self.frame,
             placeholder_text="Username",
             width=self.width
         )
-        self.username.pack(pady=5, fill="x")
+        self.username.pack(pady=5, padx=5, fill="x", side="top")
         self.url = customtkinter.CTkEntry(
             self.frame,
             placeholder_text="url",
             width=self.width
         )
-        self.url.pack(pady=5, fill="x")
+        self.url.pack(pady=5, padx=5, fill="x", side="top")
 
         self.email = customtkinter.CTkEntry(
             self.frame,
             placeholder_text="Email",
             width=self.width
         )
-        self.email.pack(pady=5, fill="x")
+        self.email.pack(pady=5, padx=5, fill="x", side="top")
+
+        self.password_menu_var = customtkinter.StringVar(value="Generate Password")
+        self.password_menu = customtkinter.CTkOptionMenu(
+            master=self.frame,
+            values=["Generate Password", "Generate Passphrase", "Manual Password"],
+            command=self.optionmenu_callback,
+            variable=self.password_menu_var
+        )
+        self.password_menu.pack(pady=5, padx=5, fill="x", side="top")
 
         self.password = customtkinter.CTkEntry(
-            self.frame,
-            placeholder_text="Password",
-            width=self.width
-        )
-        self.password.pack(pady=5, fill="x")
+                master=self.frame,
+                placeholder_text="Password",
+                width=self.width
+            )
 
         self.confirm_button = customtkinter.CTkButton(
             master=self.frame,
@@ -236,13 +240,47 @@ class AddDialog(customtkinter.CTkToplevel):
             command=self.destroy,
         )
         self.cancel_button.pack(pady=5, padx=5, fill="x", side="right")
+    
+    def optionmenu_callback(self, choice):
+        if choice == "Generate Password":
+            if self.password.winfo_exists():
+                self.password.destroy()
+            self.passwd = self.controller.interface.gen_password(12)
+        if choice == "Generate Passphrase":
+            if self.password.winfo_exists():
+                self.password.destroy()
+            self.passwd = self.controller.interface.gen_passphrase(4, False)
+        if choice == "Manual Password":
+            self.confirm_button.destroy()
+            self.cancel_button.destroy()
+            self.password = customtkinter.CTkEntry(
+                master=self.frame,
+                placeholder_text="Password",
+                width=self.width
+            )
+            self.password.pack(pady=5, padx=5, fill="x", side="top")
+            self.confirm_button = customtkinter.CTkButton(
+                master=self.frame,
+                text="Confirm",
+                width=150,
+                command=self.add_entry,
+            )
+            self.confirm_button.pack(pady=5, padx=5, fill="x", side="left")
+            self.cancel_button = customtkinter.CTkButton(
+                master=self.frame,
+                text="Cancel",
+                width=150,
+                command=self.destroy,
+            )
+            self.cancel_button.pack(pady=5, padx=5, fill="x", side="right")
+            self.passwd = None
 
     def add_entry(self):
         service = self.service.get()
         username = self.username.get()
         url = self.url.get()
         email = self.email.get()
-        password = self.password.get()
+        password = self.passwd if self.passwd is not None else self.password.get()
         fields = [True if field == "" else False for field in [
             service, username, url, email, password]]
 
@@ -262,6 +300,8 @@ class AddDialog(customtkinter.CTkToplevel):
             self.toplevel_window = ErrorDialog(
                 self, self.controller
             )
+            self.toplevel_window.focus()
+
         else:
             self.toplevel_window.focus()
 
@@ -288,6 +328,7 @@ class ErrorDialog(customtkinter.CTkToplevel):
         self.controller = controller
         self.width = 130
         self.geometry("400x300")
+        self.title("Error")
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -296,7 +337,7 @@ class ErrorDialog(customtkinter.CTkToplevel):
 
         self.msg = customtkinter.CTkLabel(
             master=self.msg_frame,
-            text="Du hast was vergessen du pimmel!",
+            text="Du hast was vergessen du pimmel!\n alles ausfüllen.",
             width=self.width
         )
         self.msg.pack(padx=10, pady=10, fill="x")
@@ -320,19 +361,8 @@ class EntryList(customtkinter.CTkScrollableFrame):
             create_entry(
                 entry,
                 self,
-                self.controller
+                self.controller,
             )
-
-
-class Separator(customtkinter.CTkLabel):
-    def __init__(self, parent, font_size, **kwargs):
-        super().__init__(
-            parent,
-            text='|',
-            font=("Hack Regular", font_size),
-            **kwargs)
-
-        self.pack(pady=10, padx=10, side="left")
 
 
 class EntryItem(customtkinter.CTkFrame):
@@ -344,63 +374,72 @@ class EntryItem(customtkinter.CTkFrame):
         self.entry_list = parent
         self.toplevel_window = None
 
-        self.id = customtkinter.CTkLabel(
-            master=self,
-            text=self.entry.id,
-            font=("Hack Regular", self.font_size)
-        )
-        self.id.pack(pady=0, padx=(15, 0), side="left")
-        Separator(self, self.font_size)
+     
 
-        self.service = customtkinter.CTkLabel(
+        self.service = customtkinter.CTkTextbox(
             master=self,
-            text=self.entry.service,
-            font=("Hack Regular", self.font_size)
+            font=("Hack Regular", self.font_size),
+            width=len(self.entry.service),
+            height=10,
         )
-        self.service.pack(pady=0, padx=0, side="left")
+        self.service.insert("0.0", self.entry.service)
+        self.service.configure(state="disabled")
+        self.service.pack(pady=5, padx=(5, 2.5), side="left", fill="x", expand=True)
         self.service.bind("<Double-Button-1>", self.double_click)
-        Separator(self, self.font_size)
+        #Separator(self, self.font_size)
 
-        self.username = customtkinter.CTkLabel(
+        self.username = customtkinter.CTkTextbox(
             master=self,
-            text=self.entry.username,
-            font=("Hack Regular", self.font_size)
+            font=("Hack Regular", self.font_size),
+            width=len(self.entry.username),
+            height=10
         )
-        self.username.pack(pady=0, padx=0, side="left")
+        self.username.insert("0.0", self.entry.username)
+        self.username.configure(state="disabled")
+        self.username.pack(pady=5, padx=2.5, side="left", fill="x", expand=True)
         self.username.bind("<Double-Button-1>", self.double_click)
-        Separator(self, self.font_size)
+        #Separator(self, self.font_size)
 
-        self.website = customtkinter.CTkLabel(
+        self.website = customtkinter.CTkTextbox(
             master=self,
-            text=self.entry.url,
-            font=("Hack Regular", self.font_size)
+            font=("Hack Regular", self.font_size),
+            width=len(self.entry.url),
+            height=10
         )
-        self.website.pack(pady=0, padx=0, side="left")
+        self.website.insert("0.0", self.entry.url)
+        self.website.configure(state="disabled")
+        self.website.pack(pady=5, padx=2.5, side="left", fill="x", expand=True)
         self.website.bind("<Double-Button-1>", self.double_click)
-        Separator(self, self.font_size)
+       # Separator(self, self.font_size)
 
-        self.email = customtkinter.CTkLabel(
+        self.email = customtkinter.CTkTextbox(
             master=self,
-            text=self.entry.email,
-            font=("Hack Regular", self.font_size)
+            font=("Hack Regular", self.font_size),
+            width=len(self.entry.email),
+            height=10
         )
-        self.email.pack(pady=0, padx=0, side="left")
+        self.email.insert("0.0", self.entry.email)
+        self.email.configure(state="disabled")
+        self.email.pack(pady=5, padx=2.5, side="left", fill="x", expand=True)
         self.email.bind("<Double-Button-1>", self.double_click)
-        Separator(self, self.font_size)
+        #Separator(self, self.font_size)
 
-        self.password = customtkinter.CTkLabel(
+        self.password = customtkinter.CTkTextbox(
             master=self,
-            text=self.entry.password,
-            font=("Hack Regular", self.font_size)
+            font=("Hack Regular", self.font_size),
+            width=len(self.entry.password),
+            height=10
         )
-        self.password.pack(pady=0, padx=0, side="left")
+        self.password.insert("0.0", self.entry.password)
+        self.password.configure(state="disabled")
+        self.password.pack(pady=5, padx=2.5, side="left", fill="x", expand=True)
         self.password.bind("<Double-Button-1>", self.double_click)
-        Separator(self, self.font_size)
+        #Separator(self, self.font_size)
 
         self.del_button = customtkinter.CTkButton(
             master=self,
             text="✗",
-            width=15,
+            width=20,
             command=self.delete
         )
         self.del_button.pack(pady=5, padx=(0, 15), side="right")
@@ -408,13 +447,14 @@ class EntryItem(customtkinter.CTkFrame):
         self.update_button = customtkinter.CTkButton(
             master=self,
             text="✏",
-            width=15,
+            width=20,
             command=self.update
         )
         self.update_button.pack(pady=5, padx=5, side="right")
 
     def double_click(self, event):
-        text = event.widget["text"]
+        # text = event.widget["text"]
+        text = event.widget.get("0.0", "end")
         self.copy_text(text)
 
     def copy_text(self, text):
@@ -426,6 +466,8 @@ class EntryItem(customtkinter.CTkFrame):
             # create window if its None or destroyed
             self.toplevel_window = ConfirmDialog(
                 self.entry.id, self.entry_list, self, self.controller)
+            self.toplevel_window.focus()
+
         else:
             self.toplevel_window.focus()
 
@@ -434,6 +476,8 @@ class EntryItem(customtkinter.CTkFrame):
             # create window if its None or destroyed
             self.toplevel_window = UpdateDialog(
                 self.entry, self.entry_list, self, self.controller)
+            self.toplevel_window.focus()
+
         else:
             self.toplevel_window.focus()
 
@@ -446,6 +490,7 @@ class UpdateDialog(customtkinter.CTkToplevel):
         self.entry = entry
         self.geometry("400x300")
         self.width = 120
+        self.title(f"Update Entry: {self.entry.id}")
 
         self.frame = customtkinter.CTkFrame(self)
         self.grid_columnconfigure(0, weight=1)
@@ -457,33 +502,33 @@ class UpdateDialog(customtkinter.CTkToplevel):
             placeholder_text=self.entry.service,
             width=self.width
         )
-        self.service.pack(pady=(5, 10), fill="x")
+        self.service.pack(pady=(10, 5), padx=5, fill="x")
         self.username = customtkinter.CTkEntry(
             self.frame,
             placeholder_text=self.entry.username,
             width=self.width
         )
-        self.username.pack(pady=5, fill="x")
+        self.username.pack(pady=5, padx=5, fill="x")
         self.url = customtkinter.CTkEntry(
             self.frame,
             placeholder_text=self.entry.url,
             width=self.width
         )
-        self.url.pack(pady=5, fill="x")
+        self.url.pack(pady=5, padx=5, fill="x")
 
         self.email = customtkinter.CTkEntry(
             self.frame,
             placeholder_text=self.entry.email,
             width=self.width
         )
-        self.email.pack(pady=5, fill="x")
+        self.email.pack(pady=5, padx=5, fill="x")
 
         self.password = customtkinter.CTkEntry(
             self.frame,
             placeholder_text=self.entry.password,
             width=self.width
         )
-        self.password.pack(pady=5, fill="x")
+        self.password.pack(pady=5, padx=5, fill="x")
 
         self.confirm_button = customtkinter.CTkButton(
             master=self.frame,
@@ -504,7 +549,7 @@ class UpdateDialog(customtkinter.CTkToplevel):
         service = self.service.get() if self.service.get() != "" else self.entry.service
         username = self.username.get() if self.username.get() != "" else self.entry.username
         url = self.url.get() if self.url.get() != "" else self.entry.url
-        email = self.email.get() if self.email.get() != "" else self.entry.url
+        email = self.email.get() if self.email.get() != "" else self.entry.email
         password = self.password.get() if self.password.get() != "" else self.entry.password
 
         self.controller.interface.update_entry(
@@ -537,6 +582,7 @@ class ConfirmDialog(customtkinter.CTkToplevel):
         self.entry_id = entry_id
         self.widht = 130
         self.geometry("400x300")
+        self.title(f"Delete Entry: {self.entry_id}")
 
         self.frame = customtkinter.CTkFrame(self)
         self.grid_columnconfigure(0, weight=1)
@@ -603,10 +649,12 @@ class Searchbar(customtkinter.CTkFrame):
         query = self.search_field.get()
         self.clear_results()
 
-        if query:
-            results = self.controller.interface.search_entry(query)
-        else:
+        if query == "":
             results = self.controller.interface.get_all_entries()
+        elif len(query) < 3:
+            return
+        elif query:
+            results = self.controller.interface.search_entry(query)
 
         for _, result in enumerate(results):
             create_entry(
@@ -627,5 +675,7 @@ def create_entry(entry, parent, controller):
         parent,
         controller,
         height=50,
+        border_color="grey",
+        border_width=1
     )
-    item_frame.pack(fill="x", padx=5, pady=3)
+    item_frame.pack(fill="x", padx=1, pady=1)

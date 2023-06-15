@@ -11,9 +11,17 @@ class StorageManager():
     def __init__(self, passlocker) -> None:
         self.passlocker = passlocker
         if platform.system() == "Linux":
-            self.storage_file = Path.home() / ".passlock/entries.csv"
+            storage_folder = Path.home() / ".passlock"
+            if not storage_folder.exists():
+                storage_folder.mkdir(0o600)
+            self.storage_file = storage_folder / "entries.csv"
+        
         elif platform.system() == "Windows":
-            self.storage_file = Path.home() / r"Documents\passlock\entries.csv"
+            storage_folder = Path.home() / r"AppData\Local\passlock"
+            if not storage_folder.exists():
+                storage_folder.mkdir(mode=0o600)
+                os.system(f'attrib +h "{storage_folder}"')
+            self.storage_file = storage_folder / "entries.csv"
 
         if not os.path.exists(self.storage_file):
             self.new()

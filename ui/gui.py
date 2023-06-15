@@ -11,6 +11,8 @@ class Gui(customtkinter.CTk):
         super().__init__()
         self.interface = Interface()
         self.logged_in = False
+        self.geometry("1280x620")
+        self.title("Passlock")
 
         self.container = customtkinter.CTkFrame(master=self)
         self.container.pack(

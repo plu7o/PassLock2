@@ -26,7 +26,7 @@ class Passlocker:
 
         dkey = self.derive_password(salt, master_password)
         if not self.verify(dkey_hash.decode(), dkey):
-            raise PasslockException("Authentication Failed! - wrong password")
+            raise PasslockException("Authentication Failed! - wrong password.")
 
         self.derived_key: bytes = dkey
         self.encryption_key: bytes = ekey
@@ -91,28 +91,33 @@ class Passlocker:
         encode_ekey = base64.urlsafe_b64encode(salt + dkey_hash + ekey)
         keyfile = None
         if self.check_os() == "Linux":
-            if not (Path.home() / ".passlock").exists():
-                (Path.home() / ".passlock").mkdir(mode=0o700)
-                keyfile = str((Path.home() / ".passlock/passlock.key"))
+            program_folder = Path.home() / ".passlock"
+            if not program_folder.exists():
+                program_folder.mkdir(mode=0o600)
+            keyfile = str(program_folder / "passlock.key")
 
         elif self.check_os() == "Windows":
-            documents = Path.home() / "Documents"
-            hidden_folder = documents / "passlock"
-            if not hidden_folder.exists():
-                hidden_folder.mkdir()
-                os.system(f'attrib +h "{hidden_folder}"')
-                keyfile = str(hidden_folder / "passlock.key")
+            program_folder = Path.home() / r"Documents\passlock"
+            if not program_folder.exists():
+                program_folder.mkdir(mode=0o600)
+                os.system(f'attrib +h "{program_folder}"')
+            keyfile = str(program_folder / "passlock.key")
 
         if keyfile is None:
             raise PasslockException(
-                "Keyfile could not be written - OS not supported")
+                "Oh oh Keyfile could not be written - contact your son!")
 
         with open(keyfile, 'wb') as key:
             key.write(encode_ekey)
-        os.chmod(keyfile, stat.S_IRUSR | stat.S_IWUSR)
+
+        os.chmod(keyfile, 0o600)
 
     def load_key(self) -> tuple[bytes, bytes, bytes]:
-        keyfile = str(Path.home() / ".passlock/passlock.key")
+        if self.check_os() == "Linux":
+            keyfile = str(Path.home() / ".passlock/passlock.key")
+        elif self.check_os() == "Windows":
+            keyfile = str(Path.home() / r"Documents\passlock\passlock.key")
+
         with open(keyfile, 'rb') as key:
             encode_ekey = key.read()
         decode_ekey = base64.urlsafe_b64decode(encode_ekey)
